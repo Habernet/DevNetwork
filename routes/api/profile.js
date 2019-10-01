@@ -238,5 +238,94 @@ router.delete("/experience/:exp_id", auth, async (req, res) => {
   }
 });
 
+// @route    PUT /api/profile/education
+// @desc     Update profiles education
+// @access   Private
+router.put(
+  "/experience",
+  [
+    auth,
+    [
+      check("school", "School is required.")
+        .not()
+        .isEmpty(),
+      check("degree", "Degree is required.")
+        .not()
+        .isEmpty(),
+      check("fieldofstudy", "Field of study is required")
+        .not()
+        .isEmpty(),
+      check("from", "From date is required.")
+        .not()
+        .isEmpty()
+    ]
+  ],
+  async (req, res) => {
+    // Validate the input from the front end.
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({ errors: errors.array() });
+    }
+
+    //if no errors, destructure the req.body to get the information that we want to update.
+    const {
+      school,
+      degree,
+      fieldofstudy,
+      from,
+      to,
+      current,
+      description
+    } = req.body;
+
+    // create an object representing the new experiences
+    const newEdu = {
+      school,
+      degree,
+      fieldofstudy,
+      from,
+      to,
+      current,
+      description
+    };
+
+    // Use a try/catch block to update this new information in the database
+    try {
+      //Get the profile with the user.id
+      const profile = await Profile.findOne({ user: req.user.id });
+      // unshift addes our new information first
+      profile.education.unshift(newEdu);
+      // Save the new profile
+      await profile.save();
+      //Respond with the updated profile
+      res.json(profile);
+    } catch (error) {
+      console.error(error);
+      res.status(500).send("Server Error");
+    }
+  }
+);
+
+// @route    DELETE api/profile/education/:exp_id
+// @desc     Delete education from profile
+// @access   Private
+router.delete("/education/:edu_id", auth, async (req, res) => {
+  try {
+    const profile = await Profile.findOne({ user: req.user.id });
+    // Get the remove index and splice it off and then save the user profile
+    const removeIndex = profile.education
+      .map(item => item.id)
+      .indexOf(req.params.edu_id);
+    console.log("Removing this index: ", removeIndex);
+    profile.education.splice(removeIndex, 1);
+    await profile.save();
+
+    res.json(profile);
+  } catch (error) {
+    console.error(error);
+    res.status(500).send("Server Error.");
+  }
+});
+
 //Export the router
 module.exports = router;
